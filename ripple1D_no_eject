@@ -9,7 +9,7 @@ clf
 
 %% initialize
 % parameter used
-D = 0.00025; % upper fine sand grain diameter
+D = 0.00020; % upper fine sand grain diameter
 phi = 0.35; % porosity
 rhog = 2600; % grain density 2.6*1000kg/m3
 a = 10; % angle of impact
@@ -25,15 +25,17 @@ tmax = 100; % simulate 1000s
 t = 0:dt:tmax;
 
 % random elevation for impact velocity, angle of velocity = tangent(a)
-zimp = 100*rand(1,length(t));
+%zimp = 100*rand(1,length(t));
 Vim = 2.5; % impact speed m/s
-xhorizon = zimp/tana; % impact location
+%Ahor = zimp/tana; % impact location, use same symbol from Anderson, 1993
+%A = round(Ahor);
 
 % creating arrays
-H = zeros(size(t)); % H array is the height of the grains
 % total elevation = initial elevation + grain elevation
-z = 0; % initial topography
-Z = z + H;
+%z = 0; % initial topography
+%Z = z + H;
+z = zeros(size(x));% z array is the elevation of grains, initial topography
+% is zero.
 
 % ejecta
 %n = 2;
@@ -49,36 +51,32 @@ tplot = tmax/nplots;
 
 %% simulating
 for i = 1:length(t)
+    zimp(i) = 100*rand;
+    A = round(zimp(i)/tana);
     
     % inpterpolate H to cell edges
-    Hedge = H(1:end-1)+0.5*diff(H);
-    Hedge = [Hedge 0];
+    %Hedge = H(1:end-1)+0.5*diff(H);
+    %Hedge = [Hedge 0];
     
     % z = (3.14*imprate*D^2)/(4*(1-0.35)*dx);
     % dQdx = (rhog/4)*3.14*D^2*imprate/dx;
     % flux calculation
-    Q = Vim*(sin(a))*zimp;
-    dQdx = diff(Q)/dx;
-    dQdx = [dQdx 0];
+    find(A==0) = 1; %#ok<SAGROW>
+    % elevation update
+    z(A) = z(A) + (3.14*imprate*dt*D^2)/(4*(1-phi)*dx)
     
-    % dH/dt
-    dHdt = (1/((1-phi)*rhog))*dQdx;
-    %dHdt = [dHdt(2) dHdt dHdt(end-1)]; % matrix match
-    
-    % update z
-    H = H + dHdt*dt;
-    Z = z + H;
     
     if rem(t(i),tplot)==0
         disp(['Time: ' num2str(t(i))]);
         figure(1)
-        plot(x,Z,'r','linewidth',1);
+        plot(x,z,'r','linewidth',1);
         hold on
         %plot(t,zimp,'g--','linewidth',1);
         xlabel('Distance [m]','Fontsize',12)
         ylabel('Elevation [m]','Fontsize',12)
-        ylim([0 100]);
-        %legend('Ripple height','Grain gun');
+        ylim([0 10]);
+        xlim([0 100/tana]);
+        legend('Ripple height');
         %M(:,nframe) = getframe(gcf);
         pause(0.02)  
         hold off
@@ -88,7 +86,8 @@ for i = 1:length(t)
 end
 
 %% plotting figure 2
+figure(2);
 plot(t,zimp,'g--','linewidth',1);
 xlabel('Time [sec]','Fontsize',12)
 ylabel('Elevation [m]','Fontsize',12)
-legend('grain gun position');
+legend('grain gun position at source point (x=0)');
